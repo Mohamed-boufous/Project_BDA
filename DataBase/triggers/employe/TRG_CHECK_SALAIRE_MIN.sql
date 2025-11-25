@@ -1,0 +1,10 @@
+CREATE OR REPLACE TRIGGER TRG_CHECK_SALAIRE_MIN
+BEFORE INSERT OR UPDATE ON EMPLOYE
+FOR EACH ROW
+BEGIN
+    -- On vérifie le salaire entrant (:NEW)
+    IF :NEW.SALAIRE < 3000 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Erreur : Le salaire ne peut pas être inférieur au SMIG (3000 DH).');
+    END IF;
+END;
+/
