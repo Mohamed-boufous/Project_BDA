@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 @Repository
 public interface CompteRepository extends JpaRepository<Compte, Long> {
 
+    @Procedure(procedureName = "P_VALIDER_COMPTE")
+    void validerCompteClient(@Param("p_id_client") Long idClient);
+
     @Procedure(procedureName = "depot")
     void effectuerDepot(@Param("p_RIB") Long rib, @Param("p_montant") BigDecimal montant);
 

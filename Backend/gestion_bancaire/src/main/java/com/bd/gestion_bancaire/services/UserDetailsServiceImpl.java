@@ -41,7 +41,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
 
         Optional<Client> clientOptional = clientRepository.findByEmail(email);
-        if(clientOptional.isPresent()){
+        if(clientOptional.isPresent() && clientOptional.get().getCompte().getEtatCompte()==1){
             Client client = clientOptional.get();
             return new User(
                     client.getEmail(),

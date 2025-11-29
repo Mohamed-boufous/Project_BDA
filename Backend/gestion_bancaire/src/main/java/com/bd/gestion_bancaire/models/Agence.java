@@ -45,6 +45,10 @@ public class Agence {
     @Column(name = "DATE_CREATION")
     private Timestamp dateCreation;
 
+    @Basic
+    @Column(name = "ADRESSE", length = 30)
+    private String adresse;
+
     @OneToMany(mappedBy = "agence", cascade = CascadeType.ALL)
     private Collection<Client> clients;
 

@@ -1,6 +1,6 @@
 package com.bd.gestion_bancaire.controllers;
 
-import com.bd.gestion_bancaire.config.JwtUtils;
+import com.bd.gestion_bancaire.Utils.JwtUtils;
 import com.bd.gestion_bancaire.dto.*;
 import com.bd.gestion_bancaire.services.AuthService;
 import org.springframework.http.ResponseEntity;
