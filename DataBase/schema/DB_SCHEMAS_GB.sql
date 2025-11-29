@@ -1,0 +1,152 @@
+/*==============================================================*/
+/* 2. CRÉATION DES SÉQUENCES (Pour les ID auto-générés)         */
+/*==============================================================*/
+-- Note : Pas de séquence pour EMPLOYE (CIN) ni COMPTE (RIB généré par code)
+CREATE SEQUENCE AGENCE_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE CLIENT_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE TRANSACTIONS_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE PRET_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE REMBOURSEMENT_SEQ START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE HISTORIQUE_SALAIRE_SEQ START WITH 1 INCREMENT BY 1;
+
+/*==============================================================*/
+/* 3. CRÉATION DES TABLES                                       */
+/*==============================================================*/
+
+-- Table : AGENCE
+CREATE TABLE AGENCE (
+   ID_AGENCE            INTEGER           NOT NULL,
+   NOM_AGENCE           VARCHAR2(50),     -- Renommé de PRENOM
+   NUM_TELEPHONE        VARCHAR2(15),
+   VILLE                VARCHAR2(15),
+   CODE_POSTAL          VARCHAR2(10),
+   CONSTRAINT PK_AGENCE PRIMARY KEY (ID_AGENCE)
+);
+
+-- Table : EMPLOYE (Utilise CIN comme PK)
+CREATE TABLE EMPLOYE (
+   CIN                  VARCHAR2(10)      NOT NULL,
+   MANAGER_CIN          VARCHAR2(10),     -- Renommé de EMP_CIN
+   ID_AGENCE            INTEGER           NOT NULL,
+   NOM                  VARCHAR2(50),
+   PRENOM               VARCHAR2(50),     -- Ajouté
+   POSTE                VARCHAR2(20),     -- Renommé de POST
+   SALAIRE              NUMBER(10,2),     -- Compatible BigDecimal
+   DATE_RECRUTEMENT     TIMESTAMP,
+   EMAIL                VARCHAR2(50),     -- Ajouté pour login
+   TELEPHONE            VARCHAR2(20),     -- Ajouté
+   MOT_DE_PASSE         VARCHAR2(100),    -- Ajouté (Hashé)
+   ROLE			ROLE VARCHAR2(20) DEFAULT 'ROLE_GLOBAL',
+   CONSTRAINT PK_EMPLOYE PRIMARY KEY (CIN),
+   CONSTRAINT UK_EMPLOYE_EMAIL UNIQUE (EMAIL)
+);
+
+-- Table : CLIENT
+CREATE TABLE CLIENT (
+   ID_CLIENT            INTEGER           NOT NULL,
+   ID_AGENCE            INTEGER           NOT NULL,
+   TYPE_CLIENT          VARCHAR2(30),
+   NOM                  VARCHAR2(50),
+   PRENOM               VARCHAR2(50),
+   NATIONALITE          VARCHAR2(15),
+   RAISON_SOCIALE       VARCHAR2(20),
+   CIN__PASSPORT	VARCHAR2(20),
+   EMAIL                VARCHAR2(30),
+   TELEPHONE            VARCHAR2(20),
+   MOT_DE_PASSE         VARCHAR2(100),
+   ADRESSE              VARCHAR2(30),
+   CONSTRAINT PK_CLIENT PRIMARY KEY (ID_CLIENT),
+   CONSTRAINT UK_CLIENT_EMAIL UNIQUE (EMAIL)
+);
+
+-- Table : COMPTE
+CREATE TABLE COMPTE (
+   RIB                  VARCHAR2(30)      NOT NULL,
+   ID_CLIENT            INTEGER           NOT NULL,
+   SOLDE                NUMBER(12,2),     -- Compatible BigDecimal
+   DATE_CREATION        TIMESTAMP,
+   ETAT_COMPTE          NUMBER(5,0),      -- Compatible Short/SmallInt
+   CONSTRAINT PK_COMPTE PRIMARY KEY (RIB),
+   CONSTRAINT UK_COMPTE_CLIENT UNIQUE (ID_CLIENT) -- Relation 1:1 stricte
+);
+
+-- Table : PRET
+CREATE TABLE PRET (
+   ID_PRET              INTEGER           NOT NULL,
+   ID_CLIENT            INTEGER           NOT NULL,
+   MONTANT              NUMBER(12,2),
+   DATE_PRET            TIMESTAMP,
+   ETAT_PRET            NUMBER(5,0),      -- Compatible Short
+   INTERETS             NUMBER(10,2),     -- Compatible BigDecimal
+   DUREE                TIMESTAMP,
+   MONTANT_PAYE		NUMBER(10,2),
+   CONSTRAINT PK_PRET PRIMARY KEY (ID_PRET)
+);
+
+-- Table : REMBOURSEMENT
+CREATE TABLE REMBOURSEMENT (
+   ID_REMB              INTEGER           NOT NULL,
+   ID_PRET              INTEGER           NOT NULL,
+   DATE_REMB            TIMESTAMP,
+   MONTANT              NUMBER(12,2),
+   CONSTRAINT PK_REMBOURSEMENT PRIMARY KEY (ID_REMB)
+);
+
+-- Table : TRANSACTIONS (Fusionnée avec l'ancienne table EFFECTUER)
+CREATE TABLE TRANSACTIONS (
+   CODE_T               INTEGER           NOT NULL,
+   TYPE_T               VARCHAR2(10),     -- 'VIREMENT', 'DEPOT', 'RETRAIT'
+   DATE_TRANSACTION     TIMESTAMP,
+   MONTANT              NUMBER(12,2),
+   RIB_EMETTEUR         VARCHAR2(30)      NOT NULL, -- Celui qui paye/dépose
+   RIB_DESTINATAIRE     VARCHAR2(30),     -- Celui qui reçoit (NULL si dépôt/retrait)
+   CONSTRAINT PK_TRANSACTIONS PRIMARY KEY (CODE_T)
+);
+
+-- Table : HISTORIQUE_SALAIRE (Audit des changements de salaire)
+CREATE TABLE HISTORIQUE_SALAIRE 
+(
+   ID_LOG               INTEGER               not null,
+   CIN_EMPLOYE          VARCHAR2(10)          not null,
+   ANCIEN_SALAIRE       NUMBER(10,2),
+   NOUVEAU_SALAIRE      NUMBER(10,2),
+   DATE_MODIFICATION    TIMESTAMP             DEFAULT SYSDATE,
+   MODIFIE_PAR          VARCHAR2(30),         
+   constraint PK_HISTO_SALAIRE primary key (ID_LOG)
+);
+
+/*==============================================================*/
+/* 4. AJOUT DES CONTRAINTES DE CLÉS ÉTRANGÈRES (FK)             */
+/*==============================================================*/
+
+-- Liens EMPLOYE
+ALTER TABLE EMPLOYE ADD CONSTRAINT FK_EMPLOYE_AGENCE 
+    FOREIGN KEY (ID_AGENCE) REFERENCES AGENCE (ID_AGENCE);
+ALTER TABLE EMPLOYE ADD CONSTRAINT FK_EMPLOYE_MANAGER 
+    FOREIGN KEY (MANAGER_CIN) REFERENCES EMPLOYE (CIN);
+
+-- Liens CLIENT
+ALTER TABLE CLIENT ADD CONSTRAINT FK_CLIENT_AGENCE 
+    FOREIGN KEY (ID_AGENCE) REFERENCES AGENCE (ID_AGENCE);
+
+-- Liens COMPTE
+ALTER TABLE COMPTE ADD CONSTRAINT FK_COMPTE_CLIENT 
+    FOREIGN KEY (ID_CLIENT) REFERENCES CLIENT (ID_CLIENT);
+
+-- Liens PRET
+ALTER TABLE PRET ADD CONSTRAINT FK_PRET_CLIENT 
+    FOREIGN KEY (ID_CLIENT) REFERENCES CLIENT (ID_CLIENT);
+
+-- Liens REMBOURSEMENT
+ALTER TABLE REMBOURSEMENT ADD CONSTRAINT FK_REMBOURSEMENT_PRET 
+    FOREIGN KEY (ID_PRET) REFERENCES PRET (ID_PRET);
+
+-- Liens TRANSACTIONS
+ALTER TABLE TRANSACTIONS ADD CONSTRAINT FK_TRANS_EMETTEUR 
+    FOREIGN KEY (RIB_EMETTEUR) REFERENCES COMPTE (RIB);
+ALTER TABLE TRANSACTIONS ADD CONSTRAINT FK_TRANS_DESTINATAIRE 
+    FOREIGN KEY (RIB_DESTINATAIRE) REFERENCES COMPTE (RIB);
+
+
+ALTER TABLE HISTORIQUE_SALAIRE ADD CONSTRAINT FK_HISTO_EMPLOYE 
+    FOREIGN KEY (CIN_EMPLOYE) REFERENCES EMPLOYE (CIN);

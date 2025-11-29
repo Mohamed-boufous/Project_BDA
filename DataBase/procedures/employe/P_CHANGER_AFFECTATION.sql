@@ -7,25 +7,30 @@ IS
     v_dummy NUMBER; 
 BEGIN
     
-    -- 1. VERIFICATION DE L'EMPLOYÉ (Celui qu'on veut muter)
+    -- 1. REGLE MÉTIER : Un employé ne peut pas être son propre chef
+    IF p_cin = p_managerID THEN
+        RAISE_APPLICATION_ERROR(-20004, 'Erreur : Un employé ne peut pas être son propre manager.');
+    END IF;
+
+    -- 2. VERIFICATION DE L'EMPLOYÉ
     BEGIN 
         SELECT 1 INTO v_dummy FROM EMPLOYE WHERE CIN = p_cin; 
     EXCEPTION 
         WHEN NO_DATA_FOUND THEN 
-            RAISE_APPLICATION_ERROR(-20001, 'Erreur : L''employé à affecter n''existe pas.'); 
+            RAISE_APPLICATION_ERROR(-20001, 'Erreur : L''employé à affecter (' || p_cin || ') n''existe pas.'); 
     END; 
 
-    -- 2. VERIFICATION DU NOUVEAU MANAGER (S'il est renseigné)
+    -- 3. VERIFICATION DU NOUVEAU MANAGER (S'il est renseigné)
     IF p_managerID IS NOT NULL THEN 
         BEGIN 
             SELECT 1 INTO v_dummy FROM EMPLOYE WHERE CIN = p_managerID; 
         EXCEPTION 
             WHEN NO_DATA_FOUND THEN 
-                RAISE_APPLICATION_ERROR(-20002, 'Erreur : Le nouveau manager n''existe pas.'); 
+                RAISE_APPLICATION_ERROR(-20002, 'Erreur : Le manager indiqué (' || p_managerID || ') n''existe pas.'); 
         END; 
     END IF; 
 
-    -- 3. VERIFICATION DE LA NOUVELLE AGENCE
+    -- 4. VERIFICATION DE LA NOUVELLE AGENCE
     BEGIN 
         SELECT 1 INTO v_dummy FROM AGENCE WHERE ID_AGENCE = p_id_agence; 
     EXCEPTION 
@@ -33,17 +38,22 @@ BEGIN
             RAISE_APPLICATION_ERROR(-20003, 'Erreur : L''agence de destination n''existe pas.'); 
     END; 
 
-    -- 4. MISE A JOUR (UPDATE)
-    -- Notez bien la VIRGULE (,) et le nom de table corrigé
+    -- 5. MISE A JOUR
     UPDATE EMPLOYE 
     SET ID_AGENCE = p_id_agence, 
         MANAGER_CIN = p_managerID 
     WHERE CIN = p_cin; 
 
-    -- 5. SAUVEGARDE
     COMMIT;
 
-    DBMS_OUTPUT.PUT_LINE('Succès : Affectation modifiée pour l''employé ' || p_cin);
-
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        -- On laisse passer nos erreurs métier (-20xxx)
+        IF SQLCODE BETWEEN -20999 AND -20000 THEN
+            RAISE;
+        ELSE
+            RAISE_APPLICATION_ERROR(-20000, 'Erreur technique lors de l''affectation : ' || SQLERRM);
+        END IF;
 END;
 /
