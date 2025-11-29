@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/transactions")
 public class TransactionController {
 
     private final TransactionService transactionService;
@@ -48,7 +48,7 @@ public class TransactionController {
     }
 
     @PreAuthorize("hasAnyAuthority('ROLE_EMPLOYE', 'ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
-    @GetMapping("/compte-transactions/{rib}")
+    @GetMapping("/historique/{rib}")
     public ResponseEntity<?> getHistoriqueParRib(@PathVariable String rib) {
         try {
             return ResponseEntity.ok(transactionService.getTransactionsCompte(rib));
